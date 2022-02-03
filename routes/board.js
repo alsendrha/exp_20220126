@@ -167,10 +167,10 @@ router.get('/selectone', async function(req, res, next){
         // 129
         // 130
 
-        // {_id : {$lt : 113} } // 113미만
-        // {_id : {$lte : 113} } // 113이하
-        // {_id : {$gt : 113} } // 113초과
-        // {_id : {$gte : 113} } // 113이상
+        // {_id : {$lt : 113} } // 113미만 >
+        // {_id : {$lte : 113} } // 113이하 =>
+        // {_id : {$gt : 113} } // 113초과 < 
+        // {_id : {$gte : 113} } // 113이상 <=
 
 
         const prev = await collection.find(
@@ -302,7 +302,7 @@ router.put('/update', async function(req, res, next){
         const dbconn = await db.connect(dburl);
         const collection = dbconn.db(dbname).collection('board1');
 
-        // 3. 삭제 수행
+        // 3.  수행
         const result = await collection.updateOne(
             {_id : no},
             { $set : {title : title, content : content, writer : writer}},
