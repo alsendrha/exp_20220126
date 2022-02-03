@@ -133,7 +133,7 @@ router.get('/select', async function(req, res, next){
 
         return res.send({status:200, rows:result, total:result1});
     }
-    catch{
+    catch(e){
         console.error(e)
         res.send({status:-1, message:0});
     }
@@ -218,7 +218,7 @@ router.get('/selectone', async function(req, res, next){
         res.send({status:200, result : result}); // 프론트로 전달함
 
     }
-    catch{
+    catch(e){
         console.error(e); // 개발자가 확인하는 용도
         res.send({status:-1, message:0}); // 프론트로 전달함.
     }
@@ -250,7 +250,7 @@ router.put('/updatehit', async function(req, res, next){
         }
         return res.send({status : 0}); 
     }
-    catch{
+    catch(e){
         console.error(e); // 개발자 확인용
         res.send({status:-1, message:e}); // 프론트로 전달함
     }
@@ -280,7 +280,7 @@ router.delete('/delete', async function(req, res, next){
         return res.send({status : 0});
 
     }
-    catch{
+    catch(e){
         console.error(e)
         res.send({status : -1, message : e});
 
@@ -315,7 +315,7 @@ router.put('/update', async function(req, res, next){
         return res.send({status : 0});
 
     }
-    catch{
+    catch(e){
         console.error(e)
         res.send({status : -1, message : e});
 
@@ -360,7 +360,7 @@ router.post('/insertreply', async function(req, res, next){
         }
         return res.send({status : 0});
     }
-    catch{
+    catch(e){
         console.error(e);
         res.send({status : -1, message : e});
     }
@@ -382,7 +382,7 @@ router.get('/selectreply', async function(req, res, next){
 
         return res.send({status:200, result:result});
     }
-    catch{
+    catch(e){
         console.error(e);
         res.send({status : -1, message : e});
     }

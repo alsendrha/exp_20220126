@@ -10,11 +10,9 @@ const dbname = require('../config/mongodb').DB;
 // 등록일 자동생성
 router.post('/insert', async function(req, res, next) {
   try{
+    
+   
 
-    const dbconn = await db.connect(dburl);
-    const collection = dbconn.db(dbname).callection('sequence');
-    
-    
     const obj = {
       _id : req.body.email,
       pw : req.body.password,
@@ -22,7 +20,14 @@ router.post('/insert', async function(req, res, next) {
       regdate : new Date()
     }
 
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).callection('member2');
+    
+   
 
+
+    
+  
 
   }
   catch{
