@@ -386,7 +386,30 @@ router.get('/selectreply', async function(req, res, next){
         console.error(e);
         res.send({status : -1, message : e});
     }
-})
+});
+
+//localhost:3000/board/deletereply?no=117
+router.delete('/deletereply', async function(req, res, next){
+    try{
+        const no = Number(req.query.no)
+        
+        const dbconn = await db.connect(dburl);
+        const collection = dbconn.db(dbname).collection('boardreply1');
+
+        const result = await collection.deleteOne(
+            {_id : no},
+        );
+
+        if(result.deletedCount === 1){
+            return res.send({status : 200, result:result});
+        }
+        return res.send({status : 0});
+    }
+    catch(e){
+        console.error(e);
+        res.send({status : -1, message : e});
+    }
+});
 
 
 
