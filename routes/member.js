@@ -9,13 +9,76 @@ const dbname = require('../config/mongodb').DB;
 const crypto = require('crypto');
 
 //토큰 발행을 위한 필요 정보 가져오기
+const jwt = require('jsonwebtoken');
 const jwtkey = require('../config/auth').securitykey;
 const jwtOptions = require('../config/auth').options;
+const checkToken = require('../config/auth').ckeckToken;
+
+
+// 회원정보수정 put
+// localhost:3000/member/update
+// 토큰 이메일(PK), 이름(변경할 내용)
+router.put('/update', checkToken, async function(req, res, next) {
+  try{
+    console.log('이메일',req.body.uid);
+    console.log('기존이름',req.body.uname);
+    console.log('변경할이름',req.body.name);
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('member1');
+
+    const result = await collection.updateOne(
+      {_id : req.body.uid}, // 조건
+      { $set : {name : req.body.name}}, // 실제 변경할 항목들
+      );
+
+      if(result.modifiedCount === 1){
+        return res.send({status:200});
+      }
+
+    return res.send({status : 0});
+  }
+  catch(e){
+    console.error(e);
+      res.send({status : -1, message:e});
+  }
+});
+
+// 회원암호변경 put
+// localhost:3000/member/updatepw
+router.put('/updatepw', checkToken, async function(req, res, next) {
+  try{
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('member1');
+
+    const result = await collection.updateOne(
+      {_id : req.body.uid}, // 조건
+      { $set : {password : req.body.password}}, // 실제 변경할 항목들
+      );
+
+      if(result.modifiedCount === 1){
+        return res.send({status:200});
+      }
+
+    return res.send({status : 0});
+
+  }
+  catch(e){
+    console.error(e);
+      res.send({status : -1, message:e});
+  }
+});
+
+// 회원탈퇴 delete
+// localhost:3000/member/delete
+
+
 
 //로그인 post
 //localhost:3000/member/select
 // 이메일, 암호 => 현시점에 생성된 토큰을 전송
-router.post('/insert', async function(req, res, next) {
+router.post('/select', async function(req, res, next) {
   try{
     // 1. 전송값 받기(이메일, 암호)
     const email = req.body.email;
@@ -33,6 +96,16 @@ router.post('/insert', async function(req, res, next) {
     const result = await collection.findOne(
       {_id : email, pw : hashPassword},
       );
+
+      if(result !== null){ //로그인 가능
+        const token = jwt.sign(
+          {uid : email, uname : result.name },//토큰에 포함할 내용들...
+          jwtkey,   // 토큰생성시 키값
+          jwtOptions, // 토큰생성 옵션
+          );
+
+          return res.send({status:200, token:token});
+      }
 
     return res.send({status : 0});
 
@@ -78,5 +151,29 @@ router.post('/insert', async function(req, res, next) {
 
   }
 });
+
+// 이메일 중복확인 get
+// 이메일 => 결과
+// localhost:3000/member/emailcheck
+router.get('/emailcheck', async function(req, res, next) {
+  try{
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('member1');
+
+    // 2. 일치하는 개수 리턴 0 또는 1
+    const result = await collection.countDocuments({
+      _id : req.query.email
+    });
+
+    return res.send({status : 200, result:result});
+  }
+
+  catch(e){
+    console.error(e);
+      res.send({status : -1, message:e});
+  }
+});
+
 
 module.exports = router;
