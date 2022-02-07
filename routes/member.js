@@ -72,7 +72,26 @@ router.put('/updatepw', checkToken, async function(req, res, next) {
 
 // 회원탈퇴 delete
 // localhost:3000/member/delete
+router.delete('/delete', checkToken, async function(req, res, next) {
+  try{
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('member1');
 
+    const result = await collection.deleteOne(
+      {_id : req.body.uid},
+    );
+
+    if(result.deletedCount === 1){
+      return res.send({status:200});
+    }
+    return res.send({status:0});
+    
+  }
+  catch(e){
+    console.error(e);
+      res.send({status : -1, message:e});
+  }
+});
 
 
 //로그인 post
