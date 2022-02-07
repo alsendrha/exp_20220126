@@ -388,10 +388,10 @@ router.get('/selectreply', async function(req, res, next){
     }
 });
 
-//localhost:3000/board/deletereply?no=117
+//localhost:3000/board/deletereply?no=${no}
 router.delete('/deletereply', async function(req, res, next){
     try{
-        const no = Number(req.query.no)
+        const no = Number(req.query.no);
         
         const dbconn = await db.connect(dburl);
         const collection = dbconn.db(dbname).collection('boardreply1');
