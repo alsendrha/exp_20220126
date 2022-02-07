@@ -46,19 +46,39 @@ router.put('/update', checkToken, async function(req, res, next) {
 
 // 회원암호변경 put
 // localhost:3000/member/updatepw
+// 토큰 이메일, 현재 암호, 변경할암호
 router.put('/updatepw', checkToken, async function(req, res, next) {
   try{
+    // 토큰에서 꺼낸 정보
+    const email = req.body.uid; // 토큰에서 꺼낸 정보
+
+    const pw = req.body.password; // 현재암호
+    const pw1 = req.body.password1; // 변경할암호
+    // 1. 로그인 먼저하고 
+    const hashPassword = crypto.createHmac('sha256', email)
+      .update(pw).digest('hex'); // 실제 바꿔야될 값
 
     const dbconn = await db.connect(dburl);
     const collection = dbconn.db(dbname).collection('member1');
 
-    const result = await collection.updateOne(
-      {_id : req.body.uid}, // 조건
-      { $set : {password : req.body.password}}, // 실제 변경할 항목들
+    // 로그인
+    const result = await collection.findOne(
+      {_id : email, pw : hashPassword}, 
       );
 
-      if(result.modifiedCount === 1){
-        return res.send({status:200});
+      // 2. 로그인되면 암호변경
+      if(result !== null){
+        //바꿀암호 hash
+        const hashPassword1 = crypto.createHmac('sha256', email)
+          .update(pw1).digest('hex'); 
+
+        const result1 = await collection.updateOne(
+          {_id : email},
+          {$set : { pw : hashPassword1} }
+        );
+        if(result1.modifiedCount === 1){
+          return res.send({status:200});
+        }
       }
 
     return res.send({status : 0});
@@ -74,15 +94,27 @@ router.put('/updatepw', checkToken, async function(req, res, next) {
 // localhost:3000/member/delete
 router.delete('/delete', checkToken, async function(req, res, next) {
   try{
+
+    const email = req.body.uid;
+    const pw = req.body.password; 
+
+    const hashPassword = crypto.createHmac('sha256', email)
+      .update(pw).digest('hex'); 
+
     const dbconn = await db.connect(dburl);
     const collection = dbconn.db(dbname).collection('member1');
-
-    const result = await collection.deleteOne(
-      {_id : req.body.uid},
+    const result = await collection.findOne(
+      {_id : email, pw : hashPassword}, 
     );
 
-    if(result.deletedCount === 1){
-      return res.send({status:200});
+    if(result !== null){
+      const result1 = await collection.deleteOne(
+        {_id : email},
+      );
+
+      if(result1.deletedCount === 1){
+        return res.send({status:200});
+      }
     }
     return res.send({status:0});
     
