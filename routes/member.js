@@ -168,6 +168,7 @@ router.post('/select', async function(req, res, next) {
   }
 
 });
+
 //회원가입 
 // localhost:3000/member/insert
 // 이메일(PK), 암호, 이름 받기 등록일 (자동생성)
