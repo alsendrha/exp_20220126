@@ -182,6 +182,24 @@ router.get('/selectone', checkToken, async function(req, res, next){
         result['imageurl'] = `/seller/image?code=${code}`;
        // result.imageurl = `/seller/image?code=${code}`; 위에랑 같은거
 
+       // 물품1개를 조회할때 서브 이미지의 정보를 전송하는 부분
+       const collection1 = dbconn.db(dbname).collection('itemimg1');
+       const result1 = await collection1.find(
+           {itemcode : code },
+           {projection : {_id : 1 }}
+       ).sort({_id:1}).toArray();
+
+       // 수동으로 서버 이미지 PK정보를 저장함
+      // result1 => [ { "_id": 10009},{"_id": 10010},{"_id": 10011}]
+        let arr1= [];
+        for(let i=0; i<result1.length;i++){
+           arr1.push({
+               imgeUrl:`/seller/image1?code=${result1[i]._id}`
+           });
+        }
+
+        result['subImage'] = arr1;
+
         console.log(result);
         return res.send({status:200, result:result});
 
@@ -228,6 +246,7 @@ router.get('/selectlist', checkToken, async function(req, res, next){
 });
 
 // 물품 이미지 표시(물품코드가 전달되면 이미지 표시)
+// 대표이미지를 가져옴 item1 컬렉션에서 가져옴 (코드로 가져옴)
 // localhost:3000/seller/image?code=1038
 router.get('/image', async function(req, res, next){
     try{
@@ -235,6 +254,32 @@ router.get('/image', async function(req, res, next){
 
         const dbconn = await db.connect(dburl);
         const collection = dbconn.db(dbname).collection('item1');
+
+        // 조회하면 나오는 키정보확인
+        const result = await collection.findOne(
+            {_id : code},
+            {projection : {filedata : 1, filename : 1, filetype : 1, filesize : 1}}
+            // 0을 넣으면 빼는거 1을 넣으면 이것만 가져오는거
+        );
+
+        res.contentType(result.filetype);
+        return res.send(result.filedata.buffer);
+
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e});
+    }
+});
+// 서버이미지를 표시
+// 서버이미지를 가져옴 itemimg1 컬렉션에서 가져옴 (코드로 가져옴)
+// localhost:3000/seller/image1?code=1038
+router.get('/image1', async function(req, res, next){
+    try{
+        const code = Number(req.query.code);
+
+        const dbconn = await db.connect(dburl);
+        const collection = dbconn.db(dbname).collection('itemimg1');
 
         // 조회하면 나오는 키정보확인
         const result = await collection.findOne(
@@ -320,12 +365,13 @@ router.post('/subimage', upload.array("image"), checkToken, async function(req, 
             );
 
             arr.push({
-                _id      : result.value.seq,  //PK 기본키
+                _id      : result.value.seq,  // PK 기본키
                 filename : req.files[i].originalname,
                 filedata : req.files[i].buffer,
                 filetype : req.files[i].mimetype,
                 filesize : req.files[i].size,
-                itemcode : code,   //FK 외래키 물품코드
+                itemcode : code,   // FK 외래키 물품코드
+                idx      : (i+1), // 서브이미지 순서
                 regdate  : new Date(),
             });
         }
