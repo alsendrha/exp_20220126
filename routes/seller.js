@@ -71,7 +71,6 @@ router.put('/update', checkToken, upload.array("image"), async function(req, res
 });
 
 
-
 // 물품일괄삭제 : 
 // localhost:3000/seller/delete
 router.delete('/delete', checkToken, async function(req, res, next){
@@ -163,6 +162,7 @@ router.post('/insert', upload.array("image"), checkToken, async function(req, re
     }
 });
 
+
 // 믈품1개 조회(물품코드가 전달되면)
 // localhost:3000/seller/selectone?code=1038
 router.get('/selectone', checkToken, async function(req, res, next){
@@ -210,6 +210,7 @@ router.get('/selectone', checkToken, async function(req, res, next){
     }
 });
 
+
 // 물품전체 조회(판매자 토큰에 해당하는 것만)
 // localhost:3000/seller/selectlist
 router.get('/selectlist', checkToken, async function(req, res, next){
@@ -245,6 +246,7 @@ router.get('/selectlist', checkToken, async function(req, res, next){
     }
 });
 
+
 // 물품 이미지 표시(물품코드가 전달되면 이미지 표시)
 // 대표이미지를 가져옴 item1 컬렉션에서 가져옴 (코드로 가져옴)
 // localhost:3000/seller/image?code=1038
@@ -271,6 +273,8 @@ router.get('/image', async function(req, res, next){
         return res.send({status : -1, message : e});
     }
 });
+
+
 // 서버이미지를 표시
 // 서버이미지를 가져옴 itemimg1 컬렉션에서 가져옴 (코드로 가져옴)
 // localhost:3000/seller/image1?code=1038
@@ -297,6 +301,7 @@ router.get('/image1', async function(req, res, next){
         return res.send({status : -1, message : e});
     }
 });
+
 
 // console.log(req) 모르겠으면 req찍어보기
 // 조회 get => req.query => URL에 정보가 포함
@@ -341,7 +346,7 @@ router.get('/selectcode', async function(req, res, next){
 });
 
 
-// 서버이지미 등록하기(n개)
+// 서버이미지 등록하기(n개)
 // 물품에 따라서 개수가 다 다르다.
 // 게시판원본글(게시글번호, 1) ---------- (N)원본글에다는댓글(게시판글번호)
 // 물품(물품번호, 1) ---------------- (N)서버이미지(물품번호)
