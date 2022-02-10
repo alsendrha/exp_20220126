@@ -26,6 +26,9 @@ const upload = multer({storage:multer.memoryStorage()});
 router.put('/update', checkToken, upload.array("image"), async function(req, res, next){
     try{
 
+        console.log(req.body);
+        console.log(req.files);
+
         // db연결
         const dbconn = await db.connect(dburl);
         const collection = dbconn.db(dbname).collection('item1');
@@ -33,35 +36,62 @@ router.put('/update', checkToken, upload.array("image"), async function(req, res
         // req.body => {code : [1015, 1016], title : ['a', 'b']}
         // req.files => [{  }, {  }]
 
-        let cnt = 0; //실제적으로 변경한 개수를 누적할 변수
-        for(let i=0;i<req.body.title.length;i++){
-            let.obj ={
-                name : req.body.title[i],
-                price : req.body.price[i],
-                quantity : req.body.quantity[i],
-                content : req.body.content[i],
+        // req.body.title이 배열인가요?  2개 이상인가요?
+        if(Array.isArray (req.body.title)){
+            let cnt = 0; //실제적으로 변경한 개수를 누적할 변수
+            for(let i=0;i<req.body.title.length;i++){
+                let obj ={
+                    name : req.body.title[i],
+                    price : Number(req.body.price[i]),
+                    quantity : Number(req.body.quantity[i]),
+                    content : req.body.content[i],
+                };
+
+                // 이미지 첨부하면 키를 4개더 추가 8개
+                if(typeof req.files[i] !== 'undefined') {
+                    obj['filename'] = req.files[i].originalname;
+                    obj['filedata'] = req.files[i].buffer;
+                    obj['filetype'] = req.files[i].mimetype;
+                    obj['filesize'] = Number(req.files[i].size);
+                }    
+
+                const result = await collection.updateOne(
+                    {_id  : Number(req.body.code[i]) },//조건
+                    {$set : obj }, // 변경내용
+                );
+                cnt += result.matchedCount;
+            }
+
+            // 실제 변경된 개수 === 처음 변경하기 위해 반복했던 개수 일치유무
+            if(cnt === req.body.title.length){
+                return res.send({status : 200});
+            }
+
+        }
+        else{
+            let obj ={
+                name : req.body.title,
+                price : Number(req.body.price),
+                quantity : Number(req.body.quantity),
+                content : req.body.content,
             };
 
-            // 이미지 첨부하면 키를 4개더 추가 8개
-            if(typeof req.files[i] !== 'undefind') {
-                obj['filename'] = req.files[i].originalname;
-                obj['filedata'] = req.files[i].buffer;
-                obj['filetype'] = req.files[i].mimetype;
-                obj['filesize'] = req.files[i].size;
-            }    
-
+            if(typeof req.files[0] !== 'undefined') {
+                obj['filename'] = req.files[0].originalname;
+                obj['filedata'] = req.files[0].buffer;
+                obj['filetype'] = req.files[0].mimetype;
+                obj['filesize'] = Number(req.files[0].size);
+            }  
             const result = await collection.updateOne(
-                {_id  : req.body.code[i] },//조건
+                {_id  : Number(req.body.code)},//조건
                 {$set : obj }, // 변경내용
-            );
-            cnt += result.matchedCount;
-        }
+            ); 
+            
+            if(result.modifiedCount === 1){
+                return res.send({status : 200});
+            }
 
-        // 실제 변경된 개수 === 처음 변경하기 위해 반복했던 개수 일치유무
-        if(cnt === req.body.title.length){
-            return res.send({status : 200});
         }
-
         return res.send({status : 0});
     }
     catch(e){
@@ -76,6 +106,7 @@ router.put('/update', checkToken, upload.array("image"), async function(req, res
 router.delete('/delete', checkToken, async function(req, res, next){
     try{
         // {"code":[1027,1028,1029]}
+        // {"code":[1231]} 한개보낼때 이렇게 바꿔줘야함
         const code = req.body.code;
         console.log(code);
 
@@ -88,7 +119,7 @@ router.delete('/delete', checkToken, async function(req, res, next){
         )
 
         console.log(result);
-        if(result.deletedCount===1){
+        if(result.deletedCount===code.length){
             return res.send({status:200});
         }
         return res.send({status : 0});
@@ -179,8 +210,8 @@ router.get('/selectone', checkToken, async function(req, res, next){
         );
 
              //없는 변수만들어야됨, 있는 변수(키)로 만들면 변경됨
-        result['imageurl'] = `/seller/image?code=${code}`;
-       // result.imageurl = `/seller/image?code=${code}`; 위에랑 같은거
+        result['imageUrl'] = `/seller/image?code=${code}`;
+       // result.imageUrl = `/seller/image?code=${code}`; 위에랑 같은거
 
        // 물품1개를 조회할때 서브 이미지의 정보를 전송하는 부분
        const collection1 = dbconn.db(dbname).collection('itemimg1');
@@ -194,7 +225,7 @@ router.get('/selectone', checkToken, async function(req, res, next){
         let arr1= [];
         for(let i=0; i<result1.length;i++){
            arr1.push({
-               imgeUrl:`/seller/image1?code=${result1[i]._id}`
+               imageUrl:`/seller/image1?code=${result1[i]._id}`
            });
         }
 
@@ -232,7 +263,7 @@ router.get('/selectlist', checkToken, async function(req, res, next){
 
         // 이미지 반복문으로 불러옴
         for(let i=0;i<result.length;i++){
-            result[i]['imageurl'] = `/seller/image?code=${result[i]._id}`;
+            result[i]['imageUrl'] = `/seller/image?code=${result[i]._id}&ts=${new Date().getTime()}`;
 
         }
 
@@ -275,8 +306,8 @@ router.get('/image', async function(req, res, next){
 });
 
 
-// 서버이미지를 표시
-// 서버이미지를 가져옴 itemimg1 컬렉션에서 가져옴 (코드로 가져옴)
+// 서브이미지를 표시
+// 서브이미지를 가져옴 itemimg1 컬렉션에서 가져옴 (코드로 가져옴)
 // localhost:3000/seller/image1?code=1038
 router.get('/image1', async function(req, res, next){
     try{
@@ -332,7 +363,7 @@ router.get('/selectcode', async function(req, res, next){
         ).sort( {_id : 1} ).toArray(); // 정렬
 
         for(let i=0;i<result.length;i++){
-            result[i]['imageurl'] = `/seller/image?code=${result[i]._id}`;
+            result[i]['imageUrl'] = `/seller/image?code=${result[i]._id}`;
         }
 
         console.log(result);
@@ -346,7 +377,7 @@ router.get('/selectcode', async function(req, res, next){
 });
 
 
-// 서버이미지 등록하기(n개)
+// 서브이미지 등록하기(n개)
 // 물품에 따라서 개수가 다 다르다.
 // 게시판원본글(게시글번호, 1) ---------- (N)원본글에다는댓글(게시판글번호)
 // 물품(물품번호, 1) ---------------- (N)서버이미지(물품번호)
