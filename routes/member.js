@@ -125,6 +125,19 @@ router.delete('/delete', checkToken, async function(req, res, next) {
   }
 });
 
+// 토큰이 오면 이메일 전송함
+// localhost:3000/member/validation
+router.get('/validation', checkToken, async function(req, res, next){
+  try{
+    return res.send({status:200, email:req.body.uid, name:req.body.name});
+  }
+  catch(e){
+    console.error(e);
+      res.send({status:-1, message: e});
+
+  }
+});
+
 
 //로그인 post
 //localhost:3000/member/select

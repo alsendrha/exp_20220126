@@ -80,7 +80,7 @@ router.get('/grouphour', async function(req, res, next) {
   });
 
 // 상품별 주문수량
-// localhost:3000/shop/groupitem
+// localhost:3000/shop/groupitem?code=1078
 router.get('/groupitem', async function(req, res, next) {
     try{
   
@@ -254,6 +254,30 @@ router.get('/image', async function(req, res, next){
         res.contentType(result.filetype);
         return res.send(result.filedata.buffer);
 
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e});
+    }
+});
+
+// 물품삭제
+// localhost:3000/shop/orderdelete
+router.delete('/orderdelete', checkToken, async function(req, res, next){
+    try{
+        const code = req.body.code;
+
+        const dbconn = await db.connect(dburl);
+        const collection = dbconn.db(dbname).collection('order1');
+
+        const result = await collection.deleteOne(
+            {_id : {$in : code}, orderid:req.body.uid},
+        );
+
+        if(result.deletedCount===code.length){
+            return res.send({status : 200});
+        }
+        return res.send({status : 0});
     }
     catch(e){
         console.error(e);
