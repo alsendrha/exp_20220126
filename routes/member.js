@@ -129,7 +129,7 @@ router.delete('/delete', checkToken, async function(req, res, next) {
 // localhost:3000/member/validation
 router.get('/validation', checkToken, async function(req, res, next){
   try{
-    return res.send({status:200, email:req.body.uid, name:req.body.name});
+    return res.send({status:200, uid:req.body.uid, uname:req.body.uname});
   }
   catch(e){
     console.error(e);
@@ -168,7 +168,13 @@ router.post('/select', async function(req, res, next) {
           jwtOptions, // 토큰생성 옵션
           );
 
-          return res.send({status:200, token:token});
+          return res.send(
+            {
+              status:200,
+              token:token,
+              uid:email, // 이메일
+              uname:result.name // 이름
+            });
       }
 
     return res.send({status : 0});
@@ -239,6 +245,8 @@ router.get('/emailcheck', async function(req, res, next) {
       res.send({status : -1, message:e});
   }
 });
+
+
 
 
 module.exports = router;
