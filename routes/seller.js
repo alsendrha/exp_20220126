@@ -582,19 +582,77 @@ router.get('/groupitem', checkToken, async function(req, res, next) {
                 }
             },
             {
-                $project : { // 가져올 항목(물품코드, 주문수량)
+                $project : { 
                     _id : 1,
                     itemcode : 1,
                     ordercnt : 1
+
                 }
             },
             
             {
+                
                 $group : {
                     _id : '$itemcode', // 그룹할 항목
                     count : {$sum : '$ordercnt'}
                 }
             },
+        ]).toArray();
+    
+        return res.send({status:200, result:result1});
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e });
+    }
+  });
+
+  // 시간대별 주문수량
+  // 판매자의 토큰이 전송되면 검증후에 이메일을 꺼ㅗ냄
+  // item컬렉션에 판매자의 상품코드를 꺼냄
+  // order1에 상품코드가 일치하는 것만 가져와서 rtoup처리
+  // localhost:3000/seller/grouphour
+  router.get('/grouphour', checkToken, async function(req, res, next) {
+    try{
+
+        const email = req.body.uid;
+
+        const dbconn = await db.connect(dburl);
+
+        // 이메일이 일치하는 판매자의 물품코드
+        const collection = dbconn.db(dbname).collection('item1');
+        const result = await collection.distinct("_id", 
+                {seller : email});
+
+        const collection1 = dbconn.db(dbname).collection('order1');
+        // 그룹별 통계 aggregate
+        const result1 = await collection1.aggregate([
+            {
+                $match : {
+                    itemcode : {$in: result}
+                }
+            },
+            {
+                $project : { // 가져올 항목(물품코드, 주문수량)
+                    orderdate : 1, // 주문일자
+                    ordercnt : 1, // 주문수량
+                    month : {$month : '$orderdate'}, // 주문일자를 이용해서 달
+                    hour : {$hour : '$orderdate'}, // 주문일자를 이용해서 시간
+                    minute : {$minute : '$orderdate'}, // 주문일자를 이용해서 분
+                }
+            },
+            {
+                $group : {
+                    _id : '$hour', // 그룹할 항목
+                    count : { $sum : '$ordercnt' }
+                }
+
+            },
+            {
+                $sort : {
+                    _id : 1
+                }
+            }
         ]).toArray();
     
         return res.send({status:200, result:result1});
