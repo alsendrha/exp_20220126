@@ -116,8 +116,8 @@ router.get('/select', async function(req, res, next){
         // abc => a, b, c
         const result = await collection.find(
             //{title : text } 정확히 똑같아야함
-            {title : new RegExp(text, 'i') }, //조건 text 'i' 대소문자 무시      ****************
-            {projection : { _id:1, title:1, writer:1, hit:1, regdate:1 } } 
+            {content : new RegExp(text, 'i') }, //조건 text 'i' 대소문자 무시      ****************
+            {projection : { _id:1, title:1, content:1, writer:1, hit:1, regdate:1 } } 
         )
         .sort({ _id : -1 })
         .skip( (page-1)*10 )
@@ -242,7 +242,7 @@ router.put('/updatehit', async function(req, res, next){
 
         const result = await collection.updateOne(
             {_id : no},//조건
-            {$inc : {hit : 1} },//실제 수행할 내용 // ex)hit을 10씩 증가시킴    ******************
+            {$inc : {hit : 2} },//실제 수행할 내용 // ex)hit을 10씩 증가시킴    ******************
         );
 
         //DB 수행 후 반환되는 결과 값에 따라 적절한 값을 전달

@@ -15,6 +15,110 @@ const jwtOptions = require('../config/auth').options;
 const checkToken = require('../config/auth').ckeckToken;
 
 
+// 주소등록
+// db.sequence.insert({
+//   _id : 'SEQ_MEMNERADDR1_NO'
+//   seq : 2000
+// })
+
+// vue에서는 토큰 입력할 주소
+//localhost:3000/member/insertaddr
+router.post('/insertaddr', checkToken, async function(req, res, next) {
+  try{
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('sequence');
+    const result = await collection.findOneAndUpdate(
+      {_id:'SEQ_MEMBERADDR1_NO'},
+      {$inc : {seq : 1} } 
+    )
+
+    const obj = {
+      _id : result.value.seq,
+      address : req.body.address, // 주소정보
+      memberid : req.body.uid, // 토큰에서 꺼내기
+      chk : 0, // 대표주소설정(숫자크면 우선순위 부여)
+      regdate : new Date(),
+    }
+    
+    // 컬렉션명 memberaddr1
+    const collection1 = dbconn.db(dbname).collection('memberaddr1');
+    const result1 = await collection1.insertOne(obj);
+    if(result1.insertedId === obj._id){
+      return res.send({status:200});
+    }
+    return res.send({status : 0});
+
+  }
+  catch(e){
+    console.error(e);
+      res.send({status : -1, message:e});
+
+  }
+});
+
+// 주소목록
+// localhost:3000/member/selectaddr
+router.get('/selectaddr', checkToken, async function(req, res, next) {
+  try{
+
+    const address = req.body.uid;
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('memberaddr1');
+    const result = await collection.findOne(
+      {address : address }
+    ).toArray();
+
+
+  }
+  catch(e){
+    console.error(e);
+    return res.send({status : -1, message : e });
+
+  }
+});
+
+
+// 주소삭제
+// localhost:3000/member/deleteaddr
+router.post('/deleteaddr', checkToken, async function(req, res, next) {
+  try{
+    const code = req.body.uid;
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('memberaddr1');
+
+    const result = await collection.deleteOne(
+      {_id : code}
+    )
+    if(result.deletedCount===1){
+      return res.send({status : 200});
+    }
+    return res.send({status :0 })
+
+  }
+  catch(e){
+    console.error(e);
+    return res.send({status : -1, message : e });
+
+  }
+});
+
+
+//주소수정
+// localhost:3000/member/updateaddr
+router.post('/updateaddr', checkToken, async function(req, res, next) {
+});
+
+
+//대표주소설정
+// localhost:3000/member/updatechkaddr
+router.post('/updatechkaddr', checkToken, async function(req, res, next) {
+});
+
+
+
 // 회원정보수정 put
 // localhost:3000/member/update
 // 토큰 이메일(PK), 이름(변경할 내용)
@@ -125,11 +229,16 @@ router.delete('/delete', checkToken, async function(req, res, next) {
   }
 });
 
-// 토큰이 오면 이메일 전송함
+// 토큰이 오면 정보전송
 // localhost:3000/member/validation
 router.get('/validation', checkToken, async function(req, res, next){
   try{
-    return res.send({status:200, uid:req.body.uid, uname:req.body.uname});
+    return res.send({
+      status : 200, 
+      uid    : req.body.uid, 
+      uname  : req.body.uname, 
+      urole  : req.body.urole,
+    });
   }
   catch(e){
     console.error(e);
@@ -163,17 +272,20 @@ router.post('/select', async function(req, res, next) {
 
       if(result !== null){ //로그인 가능
         const token = jwt.sign(
-          {uid : email, uname : result.name },//토큰에 포함할 내용들...
+          {
+            uid   : email,
+           uname : result.name, 
+           urole : result.role 
+          },//세션 => 토큰에 포함할 내용들(아이디, 이름, 권한)
           jwtkey,   // 토큰생성시 키값
           jwtOptions, // 토큰생성 옵션
           );
-
+          
+          // 로그인시 토큰만 전송
           return res.send(
             {
-              status:200,
-              token:token,
-              uid:email, // 이메일
-              uname:result.name // 이름
+              status : 200,
+              token  : token,
             });
       }
 
@@ -202,6 +314,7 @@ router.post('/insert', async function(req, res, next) {
       _id : req.body.email,
       pw : hashPassword,
       name : req.body.name,
+      role : req.body.role,
       regdate : new Date()
     }
     

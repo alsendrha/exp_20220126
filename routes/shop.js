@@ -1,5 +1,6 @@
 // 파일명 : routes/shop.js
 var express = require('express');
+const { use } = require('express/lib/application');
 var router = express.Router();
 
 const db = require('mongodb').MongoClient;
@@ -152,6 +153,102 @@ router.get('/selectone', async function(req, res, next) {
         }
         return res.send({status:0});
 
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e});
+    }
+});
+// 장바구니 목록
+// localhost:3000/shop/selectcart
+router.get('/selectcart', async function(req, res, next){
+    try{
+        const dbconn = await db.connect(dburl);
+        const userid = req.headers['x-forwarded-for'];
+
+        // cart1에서 현재 접속한 구매자 ip정보에 해당하는 목록 받기
+        const collection = dbconn.db(dbname).collection('cart1');
+        // userid가 일치하는 code정보를 
+        const result = await collection.find(
+            {userid : userid},
+            {}
+        ).toArray();
+
+        const collection1 = dbconn.db(dbname).collection('item1');
+        for(let i=0;i<result.length;i++){
+            const result1 = await collection1.findOne(
+                {_id : result[i].code},
+                {projection : {price : 1, name : 1}}
+            )
+            result[i].itemname = result1.name;
+            result[i].itemprice = result1.price;
+        }
+        console.log(result);
+
+
+        //cart1 + item1에 있는 정보 가져오기
+        return res.send({status:200, result:result});
+
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e});
+    }
+});
+
+// 장바구니
+// localhost:3000/shop/insertcart
+router.post('/insertcart', async function(req, res, next){
+    try{
+        const dbconn = await db.connect(dburl);
+        const collection = dbconn.db(dbname).collection('sequence');
+        const result = await collection.findOneAndUpdate(
+            {_id:'SEQ_CART1_NO'},
+            {$inc : {seq : 1} } 
+        )
+        
+        const obj = {
+            // 시퀀스에서 가져온 값
+            _id : result.value.seq,
+            // 구매자가 접속한 pc의 ip주소를 사용
+            userid : req.headers['x-forwarded-for'],
+            code : Number(req.body.code),
+            cnt : Number(req.body.cnt),
+        }
+
+        const collection1 = dbconn.db(dbname).collection('cart1');
+        const result1 = await collection1.insertOne(obj);
+        if(result1.insertedId=== obj._id){
+            return res.send({status:200});
+        }
+        return res.send({status:0});
+
+    }
+    catch(e){
+        console.error(e);
+        return res.send({status : -1, message : e});
+    }
+});
+
+// 장바구니 목록 삭제
+// localhost:3000/shop/cartdelete
+router.delete('/cartdelete', async function(req, res, next){
+    try{
+        const code = req.body.code;
+
+        const dbconn = await db.connect(dburl);
+        const collection = dbconn.db(dbname).collection('cart1');
+
+        const result = await collection.deleteMany(
+            {_id : {$in : code}},
+        );
+
+        console.log(result);
+
+        if(result.deletedCount===code.length){
+            return res.send({status : 200});
+        }
+        return res.send({status : 0});
     }
     catch(e){
         console.error(e);
