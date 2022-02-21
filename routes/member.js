@@ -10,6 +10,7 @@ const crypto = require('crypto');
 
 //토큰 발행을 위한 필요 정보 가져오기
 const jwt = require('jsonwebtoken');
+const e = require('express');
 const jwtkey = require('../config/auth').securitykey;
 const jwtOptions = require('../config/auth').options;
 const checkToken = require('../config/auth').ckeckToken;
@@ -34,9 +35,9 @@ router.post('/insertaddr', checkToken, async function(req, res, next) {
     )
 
     const obj = {
-      _id : result.value.seq,
+      _id : result.value.seq, // 시퀀스번호
       address : req.body.address, // 주소정보
-      memberid : req.body.uid, // 토큰에서 꺼내기
+      memberid : req.body.uid, // 토큰에서 꺼내기 누구것인지 알기위해 꺼냄
       chk : 0, // 대표주소설정(숫자크면 우선순위 부여)
       regdate : new Date(),
     }
@@ -44,7 +45,7 @@ router.post('/insertaddr', checkToken, async function(req, res, next) {
     // 컬렉션명 memberaddr1
     const collection1 = dbconn.db(dbname).collection('memberaddr1');
     const result1 = await collection1.insertOne(obj);
-    if(result1.insertedId === obj._id){
+    if(result1.insertedId === result.value.seq){
       return res.send({status:200});
     }
     return res.send({status : 0});
@@ -62,14 +63,33 @@ router.post('/insertaddr', checkToken, async function(req, res, next) {
 router.get('/selectaddr', checkToken, async function(req, res, next) {
   try{
 
-    const address = req.body.uid;
+    const email = req.body.uid;
 
     const dbconn = await db.connect(dburl);
     const collection = dbconn.db(dbname).collection('memberaddr1');
-    const result = await collection.findOne(
-      {address : address }
-    ).toArray();
+    const result = await collection.find(
+      {memberid : email },
+      {projection : {memberid : 0}}
+    ).sort({_id : 1}).toArray();
+    // sort 오름차순 내림차순 정하는거 
 
+
+    //[{chk:1},{chk:0},{chk:0}]
+    // 대표주소
+
+    // sum = 0; 기본 초기화
+    // 1 2 3 4 5 6 7 8 9 10
+
+    let sum = 0; 
+    for(let i=0;i<result.length;i++){
+      sum = sum + Number(result[i].chk);
+    // sum += Number(result[i].chk); 위랑 같은거
+    }
+    if(sum <= 0){ // 체크된것이 없으면
+      result[0].chk = 1;
+    }
+
+    return res.send({status : 200, result:result });
 
   }
   catch(e){
@@ -82,16 +102,17 @@ router.get('/selectaddr', checkToken, async function(req, res, next) {
 
 // 주소삭제
 // localhost:3000/member/deleteaddr
-router.post('/deleteaddr', checkToken, async function(req, res, next) {
+router.delete('/deleteaddr', checkToken, async function(req, res, next) {
   try{
-    const code = req.body.uid;
+    const email = req.body.uid;
+    const no = req.body.no;
 
     const dbconn = await db.connect(dburl);
     const collection = dbconn.db(dbname).collection('memberaddr1');
 
     const result = await collection.deleteOne(
-      {_id : code}
-    )
+      {_id : no, memberid : email }
+    );
     if(result.deletedCount===1){
       return res.send({status : 200});
     }
@@ -108,13 +129,74 @@ router.post('/deleteaddr', checkToken, async function(req, res, next) {
 
 //주소수정
 // localhost:3000/member/updateaddr
-router.post('/updateaddr', checkToken, async function(req, res, next) {
+router.put('/updateaddr', checkToken, async function(req, res, next) {
+  try{
+
+    const email = req.body.uid; // 토큰에서 꺼낸 이메일
+    const no = req.body.no;   // 조건
+    const address = req.body.address;  // 수정할 내용
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('memberaddr1');
+
+    const result = await collection.updateOne(
+      {_id : no, memberid : email },
+      {$set : { address : address }}
+    )
+
+    console.log(result)
+
+    if(result.modifiedCount === 1){
+      return res.send({status : 200});
+    }
+
+    return res.send({status : 0});
+
+  }
+  catch(e){
+    console.error(e);
+    return res.send({status : -1, message : e });
+
+  }
 });
 
 
 //대표주소설정
 // localhost:3000/member/updatechkaddr
-router.post('/updatechkaddr', checkToken, async function(req, res, next) {
+router.put('/updatechkaddr', checkToken, async function(req, res, next) {
+  try{
+    const email = req.body.uid;
+    const no = req.body.no;
+
+    const dbconn = await db.connect(dburl);
+    const collection = dbconn.db(dbname).collection('memberaddr1');
+
+    // 전체적으로 chk를 0으로 변경
+    const result = await collection.updateMany(
+      { memberid : email },
+      {$set : { chk : 0} }
+    );
+
+
+    if(result.matchedCount > 0){
+      // 1개만 chk 1로 바꿈
+      const result1 = await collection.updateOne(
+        { _id : no, memberid : email },
+        {$set : { chk : 1} }
+      );
+
+      if(result1.modifiedCount === 1){
+        return res.send({status : 200});
+      }
+    }
+    return res.send({status : 0});
+
+  }
+  catch(e){
+    console.error(e);
+    return res.send({status : -1, message : e });
+
+  }
 });
 
 
