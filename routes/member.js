@@ -132,9 +132,12 @@ router.delete('/deleteaddr', checkToken, async function(req, res, next) {
 router.put('/updateaddr', checkToken, async function(req, res, next) {
   try{
 
+
     const email = req.body.uid; // 토큰에서 꺼낸 이메일
     const no = req.body.no;   // 조건
     const address = req.body.address;  // 수정할 내용
+
+    
 
     const dbconn = await db.connect(dburl);
     const collection = dbconn.db(dbname).collection('memberaddr1');
@@ -144,7 +147,6 @@ router.put('/updateaddr', checkToken, async function(req, res, next) {
       {$set : { address : address }}
     )
 
-    console.log(result)
 
     if(result.modifiedCount === 1){
       return res.send({status : 200});
